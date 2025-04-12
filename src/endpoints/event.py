@@ -13,10 +13,8 @@ import httpx
 router = APIRouter()
 
 class EventCreate(BaseModel):
-    """
-    Event creation model
-    """
     name: str
+    description: str
     max_users: int
     password: str
 
@@ -33,6 +31,7 @@ class EventResponse(BaseModel):
     """
     id: int
     name: str
+    description: str
     creator_id: int
     registered_users: int
     max_users: int

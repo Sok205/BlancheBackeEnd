@@ -27,7 +27,8 @@ class Event(Base):
     __tablename__ = 'events'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)  # Added name field
+    name = Column(String, nullable=False)
+    description = Column(String)
     creator_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     registered_users = Column(Integer, default=0)
     max_users = Column(Integer, nullable=False)

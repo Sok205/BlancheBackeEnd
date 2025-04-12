@@ -4,7 +4,7 @@ services:
     image: ghcr.io/docker/docker-model-runner:latest
     environment:
       - MODEL_ID=phanerozoic/Tiny-Viking-1.1b-v0.1
-      - HF_ACCESS_TOKEN
+      - HF_ACCESS_TOKEN=${HF_ACCESS_TOKEN}
     ports:
       - "8080:8080"
     volumes:
