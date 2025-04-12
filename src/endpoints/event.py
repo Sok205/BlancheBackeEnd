@@ -112,7 +112,7 @@ def get_all_events(db: Session = Depends(get_db)):
     """
     events = db.query(Event).all()
     events = [{**event.__dict__, 'id': str(event.id)} for event in events]
-    
+
     return events
 
 @router.get("/{event_id}", response_model=EventResponse)
@@ -161,28 +161,16 @@ def get_user_events(user_id: int, db: Session = Depends(get_db)):
 
 #LLM PART
 
-@router.get("/ai/{event_id}", response_model=EventAiDetail)
-async def get_event_ai_insight(event_id: str, db: Session = Depends(get_db)):
+@router.get("/ai/{event_id}")
+async def get_event_ai_insight(event_id: int, db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    event_dict = EventResponse(
-        id=str(event.id),
-        name=event.name,
-        description=event.description,
-        creator_id=event.creator_id,
-        registered_users=event.registered_users,
-        max_users=event.max_users
-    )
+    prompt = f"A Viking gathering named {event.name} with {event.registered_users} warriors. Purpose: {event.description}. Describe this in a viking way"
 
-    try:
-        prompt = f"Event: {event.name}\nParticipants: {event.registered_users}/{event.max_users}\nPlease provide a brief insight about this event."
-        ai_insights = await generate_text(prompt)
-    except Exception as e:
-        ai_insights = f"AI insight unavailable: {str(e)}"
+    response = await generate_text(prompt)
+    return {"generated_text": response[len(prompt) + 2:]}
 
-    return EventAiDetail(
-        event=event_dict,
-        ai_insights=ai_insights
-    )
+
+
