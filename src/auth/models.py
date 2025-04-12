@@ -4,7 +4,6 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
-# Association table for many-to-many relationship between users and events
 user_events = Table(
     'user_events',
     Base.metadata,

@@ -176,7 +176,7 @@ async def get_event_ai_insight(event_id: int, db: Session = Depends(get_db)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    prompt = f"{event.max_users} vikings. Participating in {event.description} raid. Called {event.name}"
+    prompt = f"{event.max_users} vikings. Participating in {event.description} raid, called {event.name}"
 
     response = await generate_text(prompt)
     return {"generated_text": response}
