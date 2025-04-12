@@ -151,7 +151,7 @@ def get_user_events(user_id: int, db: Session = Depends(get_db)):
 #LLM PART
 
 @router.get("/ai/{event_id}", response_model=EventAiDetail)
-async def get_event_ai_insight(event_id: int, db: Session = Depends(get_db)):
+async def get_event_ai_insight(event_id: str, db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -159,15 +159,17 @@ async def get_event_ai_insight(event_id: int, db: Session = Depends(get_db)):
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8080/v1/completions",
+                "http://localhost:8080/generate",
                 json={
-                    "prompt": f"Event: {event.name}\nParticipants: {event.registered_users}/{event.max_users}\nPlease provide a brief insight about this event.",
-                    "max_tokens": 100,
-                    "temperature": 0.7
+                    "inputs": f"Event: {event.name}\nParticipants: {event.registered_users}/{event.max_users}\nPlease provide a brief insight about this event.",
+                    "parameters": {
+                        "max_new_tokens": 100,
+                        "temperature": 0.7
+                    }
                 }
             )
             result = response.json()
-            ai_insight = result['choices'][0]['text'].strip()
+            ai_insight = result['generated_text'].strip()
     except Exception as e:
         ai_insight = f"AI insight unavailable: {str(e)}"
 
