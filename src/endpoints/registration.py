@@ -9,7 +9,6 @@ router = APIRouter()
 
 class UserCreate(BaseModel):
     name: str
-    description: str
     password: str
 
 
@@ -28,7 +27,6 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 
     db_user = User(
         name=user.name,
-        description=user.description,
         password=user.password
     )
 

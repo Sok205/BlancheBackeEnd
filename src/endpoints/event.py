@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-
 from ..auth.db import get_db
 from ..auth.models import Event, User
 from ..llm import generate_text
@@ -19,13 +18,14 @@ class EventCreate(BaseModel):
     description: str
     max_users: int
     password: str
+    location: str
+    time: str
 
 class EventJoin(BaseModel):
     """
     Event join model
     """
     event_id: int
-    password: str
 
 class EventResponse(BaseModel):
     """
@@ -38,6 +38,8 @@ class EventResponse(BaseModel):
     password: str
     registered_users: int
     max_users: int
+    location: str
+    time: str
     class Config:
         from_attributes = True
 
@@ -63,6 +65,8 @@ def create_event(user_id: int, event: EventCreate, db: Session = Depends(get_db)
         description=event.description,
         max_users=event.max_users,
         password=event.password,
+        time=event.time,
+        location=event.location,
         registered_users=1
     )
     db.add(db_event)
@@ -83,25 +87,27 @@ def join_event(user_id: int, event_data: EventJoin, db: Session = Depends(get_db
     :param db:
     :return:
     """
-    event = db.query(Event).filter(Event.id == event_data.event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+    try:
+        event = db.query(Event).filter(Event.id == event_data.event_id).first()
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
 
-    if event.password != event_data.password:
-        raise HTTPException(status_code=401, detail="Incorrect event password")
+        if event.registered_users >= event.max_users:
+            raise HTTPException(status_code=400, detail="Event is full")
 
-    if event.registered_users >= event.max_users:
-        raise HTTPException(status_code=400, detail="Event is full")
+        user = db.query(User).filter(User.id == user_id).first()
+        if user in event.attendees:
+            raise HTTPException(status_code=400, detail="Already joined this event")
 
-    user = db.query(User).filter(User.id == user_id).first()
-    if user in event.attendees:
-        raise HTTPException(status_code=400, detail="Already joined this event")
+        event.attendees.append(user)
+        event.registered_users += 1
+        db.commit()
 
-    event.attendees.append(user)
-    event.registered_users += 1
-    db.commit()
+        return {"message": "1"}
 
-    return {"message": "Successfully joined event"}
+    except Exception as e:
+        return {"message": "0"}
+
 
 @router.get("/all", response_model=list[EventResponse])
 def get_all_events(db: Session = Depends(get_db)):
@@ -145,6 +151,7 @@ def get_event_by_name(event_name: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found")
     return event
 
+
 @router.get("/user/{user_id}", response_model=list[EventResponse])
 def get_user_events(user_id: int, db: Session = Depends(get_db)):
     """
@@ -154,10 +161,12 @@ def get_user_events(user_id: int, db: Session = Depends(get_db)):
     :return:
     """
     user = db.query(User).filter(User.id == user_id).first()
-    user.events = [{**event.__dict__, 'id': str(event.id)} for event in user.events]
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user.events
+
+    # Convert to dict after accessing the relationship
+    events = [{**event.__dict__, 'id': str(event.id)} for event in user.events]
+    return events
 
 #LLM PART
 
@@ -167,10 +176,10 @@ async def get_event_ai_insight(event_id: int, db: Session = Depends(get_db)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    prompt = f"A Viking gathering named {event.name} with {event.registered_users} warriors. Purpose: {event.description}. Describe this in a viking way"
+    prompt = f"{event.max_users} vikings. Participating in {event.description} raid. Called {event.name}"
 
     response = await generate_text(prompt)
-    return {"generated_text": response[len(prompt) + 2:]}
+    return {"generated_text": response}
 
 
 

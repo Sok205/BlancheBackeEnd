@@ -18,7 +18,6 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    description = Column(String)
     password = Column(String, nullable=False)
     events = relationship('Event', secondary=user_events, back_populates='attendees')
 
@@ -35,3 +34,5 @@ class Event(Base):
     password = Column(String, nullable=False)
     attendees = relationship('User', secondary=user_events, back_populates='events')
     creator = relationship('User', foreign_keys=[creator_id])
+    time = Column(String, nullable=False)
+    location = Column(String, nullable=False)
