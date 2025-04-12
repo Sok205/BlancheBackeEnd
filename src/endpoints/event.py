@@ -168,6 +168,47 @@ def get_user_events(user_id: int, db: Session = Depends(get_db)):
     events = [{**event.__dict__, 'id': str(event.id)} for event in user.events]
     return events
 
+
+@router.delete("/{event_id}")
+def delete_event(event_id: int, user_id: int, db: Session = Depends(get_db)):
+    """
+    Endpoint for deleting a specific event
+    :param event_id: ID of the event to delete
+    :param user_id: ID of the user requesting deletion
+    :param db: Database session
+    :return: Success message
+    """
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if event.creator_id != user_id:
+        raise HTTPException(status_code=403, detail="Only the event creator can delete this event")
+
+    db.delete(event)
+    db.commit()
+
+    return {"message": "Event deleted successfully"}
+
+@router.delete("/user/{user_id}")
+def delete_event(user_id: int, db: Session = Depends(get_db)):
+    """
+    Endpoint for deleting a specific event
+    :param event_id: ID of the event to delete
+    :param user_id: ID of the user requesting deletion
+    :param db: Database session
+    :return: Success message
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+
+    db.delete(user)
+    db.commit()
+
+    return {"message": "User deleted successfully"}
+
 #LLM PART
 
 @router.get("/ai/{event_id}")
@@ -180,6 +221,4 @@ async def get_event_ai_insight(event_id: int, db: Session = Depends(get_db)):
 
     response = await generate_text(prompt)
     return {"generated_text": response}
-
-
 
