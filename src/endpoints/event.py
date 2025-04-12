@@ -7,6 +7,8 @@ from pydantic import BaseModel
 
 from ..auth.db import get_db
 from ..auth.models import Event, User
+from ..llm import generate_text
+
 
 import httpx
 
@@ -33,6 +35,7 @@ class EventResponse(BaseModel):
     name: str
     description: str
     creator_id: int
+    password: str
     registered_users: int
     max_users: int
     class Config:
@@ -57,6 +60,7 @@ def create_event(user_id: int, event: EventCreate, db: Session = Depends(get_db)
     db_event = Event(
         name=event.name,
         creator_id=user_id,
+        description=event.description,
         max_users=event.max_users,
         password=event.password,
         registered_users=1
@@ -162,26 +166,23 @@ async def get_event_ai_insight(event_id: str, db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    event = {**event.__dict__, 'id': str(event.id)}
-    
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                "http://localhost:8080/generate",
-                json={
-                    "inputs": f"Event: {event.name}\nParticipants: {event.registered_users}/{event.max_users}\nPlease provide a brief insight about this event.",
-                    "parameters": {
-                        "max_new_tokens": 100,
-                        "temperature": 0.7
-                    }
-                }
-            )
-            result = response.json()
-            ai_insight = result['generated_text'].strip()
-    except Exception as e:
-        ai_insight = f"AI insight unavailable: {str(e)}"
 
-    return {
-        "event": event,
-        "ai_insight": ai_insight
-    }
+    event_dict = EventResponse(
+        id=str(event.id),
+        name=event.name,
+        description=event.description,
+        creator_id=event.creator_id,
+        registered_users=event.registered_users,
+        max_users=event.max_users
+    )
+
+    try:
+        prompt = f"Event: {event.name}\nParticipants: {event.registered_users}/{event.max_users}\nPlease provide a brief insight about this event."
+        ai_insights = await generate_text(prompt)
+    except Exception as e:
+        ai_insights = f"AI insight unavailable: {str(e)}"
+
+    return EventAiDetail(
+        event=event_dict,
+        ai_insights=ai_insights
+    )

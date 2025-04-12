@@ -2,18 +2,16 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir \
-    torch \
-    transformers \
-    accelerate \
-    text-generation-launcher \
-    huggingface_hub
+RUN apt-get update && \
+    apt-get install -y git && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /app/model
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/docker_app.py src/docker_app.py
 
 ENV MODEL_ID="phanerozoic/Tiny-Viking-1.1b-v0.1"
-ENV HF_HOME=/app/model
+ENV HF_HOME=/app/cache
 
-COPY download_model.py .
-
-CMD ["text-generation-launcher", "--model-id", "phanerozoic/Tiny-Viking-1.1b-v0.1", "--port", "8080", "--host", "0.0.0.0"]
+CMD ["uvicorn", "src.docker_app:app", "--host", "0.0.0.0", "--port", "8080"]

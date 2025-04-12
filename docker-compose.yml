@@ -7,4 +7,4 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./cache:/app/model
+      - ./cache:/app/cache
