@@ -29,7 +29,7 @@ class EventResponse(BaseModel):
     """
     Event response model
     """
-    id: int
+    id: str
     name: str
     description: str
     creator_id: int
@@ -107,6 +107,8 @@ def get_all_events(db: Session = Depends(get_db)):
     :return:
     """
     events = db.query(Event).all()
+    events = [{**event.__dict__, 'id': str(event.id)} for event in events]
+    
     return events
 
 @router.get("/{event_id}", response_model=EventResponse)
@@ -118,6 +120,8 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
     :return:
     """
     event = db.query(Event).filter(Event.id == event_id).first()
+    event = {**event.__dict__, 'id': str(event.id)}
+
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return event
@@ -131,6 +135,8 @@ def get_event_by_name(event_name: str, db: Session = Depends(get_db)):
     :return:
     """
     event = db.query(Event).filter(Event.name == event_name).first()
+    event = {**event.__dict__, 'id': str(event.id)}
+
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return event
@@ -144,6 +150,7 @@ def get_user_events(user_id: int, db: Session = Depends(get_db)):
     :return:
     """
     user = db.query(User).filter(User.id == user_id).first()
+    user.events = [{**event.__dict__, 'id': str(event.id)} for event in user.events]
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user.events
@@ -155,7 +162,8 @@ async def get_event_ai_insight(event_id: int, db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-
+    event = {**event.__dict__, 'id': str(event.id)}
+    
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
