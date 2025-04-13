@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.sqlite import JSON
 
 Base = declarative_base()
 
@@ -35,3 +36,9 @@ class Event(Base):
     creator = relationship('User', foreign_keys=[creator_id])
     time = Column(String, nullable=False)
     location = Column(String, nullable=False)
+    
+class Game(Base):
+    __tablename__ = 'games'
+
+    id = Column(Integer, primary_key=True)
+    game = Column(JSON, nullable=False)
