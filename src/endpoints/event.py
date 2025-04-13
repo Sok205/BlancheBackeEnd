@@ -164,7 +164,6 @@ def get_user_events(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Convert to dict after accessing the relationship
     events = [{**event.__dict__, 'id': str(event.id)} for event in user.events]
     return events
 
@@ -217,12 +216,7 @@ async def get_event_ai_insight(event_id: int, db: Session = Depends(get_db)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    prompt = f"You are a viking, and you have organized an event called {event.name}. " \
-            f"The event is about {event.description}. " \
-            f"The event will take place at {event.location} on {event.time}. " \
-            f"The event will have a password: {event.password}. " \
-            "Provide a short insight about this event, including its potential impact, " \
-            "the number of attendees, and any other relevant information."
+    prompt = f"Raid called {event.name} a description {event.description}"
 
     response = await generate_text(prompt)
     return {"generated_text": response}
